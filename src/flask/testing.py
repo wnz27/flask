@@ -1,21 +1,11 @@
-# -*- coding: utf-8 -*-
-"""
-    flask.testing
-    ~~~~~~~~~~~~~
-
-    Implements test support helpers.  This module is lazily imported
-    and usually not used in production environments.
-
-    :copyright: 2010 Pallets
-    :license: BSD-3-Clause
-"""
-import warnings
 from contextlib import contextmanager
+from copy import copy
 
 import werkzeug.test
 from click.testing import CliRunner
 from werkzeug.test import Client
 from werkzeug.urls import url_parse
+from werkzeug.wrappers import Request as BaseRequest
 
 from . import _request_ctx_stack
 from .cli import ScriptInfo
@@ -52,7 +42,7 @@ class EnvironBuilder(werkzeug.test.EnvironBuilder):
         subdomain=None,
         url_scheme=None,
         *args,
-        **kwargs
+        **kwargs,
     ):
         assert not (base_url or subdomain or url_scheme) or (
             base_url is not None
@@ -65,16 +55,15 @@ class EnvironBuilder(werkzeug.test.EnvironBuilder):
             app_root = app.config["APPLICATION_ROOT"]
 
             if subdomain:
-                http_host = "{0}.{1}".format(subdomain, http_host)
+                http_host = f"{subdomain}.{http_host}"
 
             if url_scheme is None:
                 url_scheme = app.config["PREFERRED_URL_SCHEME"]
 
             url = url_parse(path)
-            base_url = "{scheme}://{netloc}/{path}".format(
-                scheme=url.scheme or url_scheme,
-                netloc=url.netloc or http_host,
-                path=app_root.lstrip("/"),
+            base_url = (
+                f"{url.scheme or url_scheme}://{url.netloc or http_host}"
+                f"/{app_root.lstrip('/')}"
             )
             path = url.path
 
@@ -83,7 +72,7 @@ class EnvironBuilder(werkzeug.test.EnvironBuilder):
                 path += sep + url.query
 
         self.app = app
-        super(EnvironBuilder, self).__init__(path, base_url, *args, **kwargs)
+        super().__init__(path, base_url, *args, **kwargs)
 
     def json_dumps(self, obj, **kwargs):
         """Serialize ``obj`` to a JSON-formatted string.
@@ -93,23 +82,6 @@ class EnvironBuilder(werkzeug.test.EnvironBuilder):
         """
         kwargs.setdefault("app", self.app)
         return json_dumps(obj, **kwargs)
-
-
-def make_test_environ_builder(*args, **kwargs):
-    """Create a :class:`flask.testing.EnvironBuilder`.
-
-    .. deprecated: 1.1
-        Will be removed in 1.2. Construct ``flask.testing.EnvironBuilder``
-        directly instead.
-    """
-    warnings.warn(
-        DeprecationWarning(
-            '"make_test_environ_builder()" is deprecated and will be removed '
-            'in 1.2. Construct "flask.testing.EnvironBuilder" directly '
-            "instead."
-        )
-    )
-    return EnvironBuilder(*args, **kwargs)
 
 
 class FlaskClient(Client):
@@ -124,16 +96,16 @@ class FlaskClient(Client):
        set after instantiation of the `app.test_client()` object in
        `client.environ_base`.
 
-    Basic usage is outlined in the :ref:`testing` chapter.
+    Basic usage is outlined in the :doc:`/testing` chapter.
     """
 
     preserve_context = False
 
     def __init__(self, *args, **kwargs):
-        super(FlaskClient, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.environ_base = {
             "REMOTE_ADDR": "127.0.0.1",
-            "HTTP_USER_AGENT": "werkzeug/" + werkzeug.__version__,
+            "HTTP_USER_AGENT": f"werkzeug/{werkzeug.__version__}",
         }
 
     @contextmanager
@@ -189,39 +161,45 @@ class FlaskClient(Client):
             headers = resp.get_wsgi_headers(c.request.environ)
             self.cookie_jar.extract_wsgi(c.request.environ, headers)
 
-    def open(self, *args, **kwargs):
-        as_tuple = kwargs.pop("as_tuple", False)
-        buffered = kwargs.pop("buffered", False)
-        follow_redirects = kwargs.pop("follow_redirects", False)
+    def open(
+        self, *args, as_tuple=False, buffered=False, follow_redirects=False, **kwargs
+    ):
+        # Same logic as super.open, but apply environ_base and preserve_context.
+        request = None
 
-        if (
-            not kwargs
-            and len(args) == 1
-            and isinstance(args[0], (werkzeug.test.EnvironBuilder, dict))
-        ):
-            environ = self.environ_base.copy()
+        def copy_environ(other):
+            return {
+                **self.environ_base,
+                **other,
+                "flask._preserve_context": self.preserve_context,
+            }
 
-            if isinstance(args[0], werkzeug.test.EnvironBuilder):
-                environ.update(args[0].get_environ())
-            else:
-                environ.update(args[0])
+        if not kwargs and len(args) == 1:
+            arg = args[0]
 
-            environ["flask._preserve_context"] = self.preserve_context
-        else:
-            kwargs.setdefault("environ_overrides", {})[
-                "flask._preserve_context"
-            ] = self.preserve_context
-            kwargs.setdefault("environ_base", self.environ_base)
+            if isinstance(arg, werkzeug.test.EnvironBuilder):
+                builder = copy(arg)
+                builder.environ_base = copy_environ(builder.environ_base or {})
+                request = builder.get_request()
+            elif isinstance(arg, dict):
+                request = EnvironBuilder.from_environ(
+                    arg, app=self.application, environ_base=copy_environ({})
+                ).get_request()
+            elif isinstance(arg, BaseRequest):
+                request = copy(arg)
+                request.environ = copy_environ(request.environ)
+
+        if request is None:
+            kwargs["environ_base"] = copy_environ(kwargs.get("environ_base", {}))
             builder = EnvironBuilder(self.application, *args, **kwargs)
 
             try:
-                environ = builder.get_environ()
+                request = builder.get_request()
             finally:
                 builder.close()
 
-        return Client.open(
-            self,
-            environ,
+        return super().open(
+            request,
             as_tuple=as_tuple,
             buffered=buffered,
             follow_redirects=follow_redirects,
@@ -257,7 +235,7 @@ class FlaskCliRunner(CliRunner):
 
     def __init__(self, app, **kwargs):
         self.app = app
-        super(FlaskCliRunner, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     def invoke(self, cli=None, args=None, **kwargs):
         """Invokes a CLI command in an isolated environment. See
@@ -280,4 +258,4 @@ class FlaskCliRunner(CliRunner):
         if "obj" not in kwargs:
             kwargs["obj"] = ScriptInfo(create_app=lambda: self.app)
 
-        return super(FlaskCliRunner, self).invoke(cli, args, **kwargs)
+        return super().invoke(cli, args, **kwargs)

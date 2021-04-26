@@ -1,7 +1,5 @@
 .. currentmodule:: flask
 
-.. _app-context:
-
 The Application Context
 =======================
 
@@ -119,7 +117,7 @@ For example, you can manage a database connection using this pattern::
         return g.db
 
     @app.teardown_appcontext
-    def teardown_db():
+    def teardown_db(exception):
         db = g.pop('db', None)
 
         if db is not None:

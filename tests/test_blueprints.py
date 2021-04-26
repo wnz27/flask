@@ -1,13 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-    tests.blueprints
-    ~~~~~~~~~~~~~~~~
-
-    Blueprints (and currently modules)
-
-    :copyright: 2010 Pallets
-    :license: BSD-3-Clause
-"""
 import functools
 
 import pytest
@@ -15,7 +5,6 @@ from jinja2 import TemplateNotFound
 from werkzeug.http import parse_cache_control_header
 
 import flask
-from flask._compat import text_type
 
 
 def test_blueprint_specific_error_handling(app, client):
@@ -146,11 +135,11 @@ def test_blueprint_url_defaults(app, client):
 
     @bp.route("/foo", defaults={"baz": 42})
     def foo(bar, baz):
-        return "%s/%d" % (bar, baz)
+        return f"{bar}/{baz:d}"
 
     @bp.route("/bar")
     def bar(bar):
-        return text_type(bar)
+        return str(bar)
 
     app.register_blueprint(bp, url_prefix="/1", url_defaults={"bar": 23})
     app.register_blueprint(bp, url_prefix="/2", url_defaults={"bar": 19})
@@ -233,7 +222,7 @@ def test_templates_and_static(test_apps):
         assert flask.render_template("nested/nested.txt") == "I'm nested"
 
 
-def test_default_static_cache_timeout(app):
+def test_default_static_max_age(app):
     class MyBlueprint(flask.Blueprint):
         def get_send_file_max_age(self, filename):
             return 100
@@ -861,3 +850,52 @@ def test_app_url_processors(app, client):
 
     assert client.get("/de/").data == b"/de/about"
     assert client.get("/de/about").data == b"/de/"
+
+
+def test_nested_blueprint(app, client):
+    parent = flask.Blueprint("parent", __name__)
+    child = flask.Blueprint("child", __name__)
+    grandchild = flask.Blueprint("grandchild", __name__)
+
+    @parent.errorhandler(403)
+    def forbidden(e):
+        return "Parent no", 403
+
+    @parent.route("/")
+    def parent_index():
+        return "Parent yes"
+
+    @parent.route("/no")
+    def parent_no():
+        flask.abort(403)
+
+    @child.route("/")
+    def child_index():
+        return "Child yes"
+
+    @child.route("/no")
+    def child_no():
+        flask.abort(403)
+
+    @grandchild.errorhandler(403)
+    def grandchild_forbidden(e):
+        return "Grandchild no", 403
+
+    @grandchild.route("/")
+    def grandchild_index():
+        return "Grandchild yes"
+
+    @grandchild.route("/no")
+    def grandchild_no():
+        flask.abort(403)
+
+    child.register_blueprint(grandchild, url_prefix="/grandchild")
+    parent.register_blueprint(child, url_prefix="/child")
+    app.register_blueprint(parent, url_prefix="/parent")
+
+    assert client.get("/parent/").data == b"Parent yes"
+    assert client.get("/parent/child/").data == b"Child yes"
+    assert client.get("/parent/child/grandchild/").data == b"Grandchild yes"
+    assert client.get("/parent/no").data == b"Parent no"
+    assert client.get("/parent/child/no").data == b"Parent no"
+    assert client.get("/parent/child/grandchild/no").data == b"Grandchild no"

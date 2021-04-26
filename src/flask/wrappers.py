@@ -1,33 +1,12 @@
-# -*- coding: utf-8 -*-
-"""
-    flask.wrappers
-    ~~~~~~~~~~~~~~
-
-    Implements the WSGI wrappers (request and response).
-
-    :copyright: 2010 Pallets
-    :license: BSD-3-Clause
-"""
 from werkzeug.exceptions import BadRequest
 from werkzeug.wrappers import Request as RequestBase
 from werkzeug.wrappers import Response as ResponseBase
-from werkzeug.wrappers.json import JSONMixin as _JSONMixin
 
 from . import json
 from .globals import current_app
 
 
-class JSONMixin(_JSONMixin):
-    json_module = json
-
-    def on_json_loading_failed(self, e):
-        if current_app and current_app.debug:
-            raise BadRequest("Failed to decode JSON object: {0}".format(e))
-
-        raise BadRequest()
-
-
-class Request(RequestBase, JSONMixin):
+class Request(RequestBase):
     """The request object used by default in Flask.  Remembers the
     matched endpoint and view arguments.
 
@@ -39,6 +18,8 @@ class Request(RequestBase, JSONMixin):
     provides all of the attributes Werkzeug defines plus a few Flask
     specific ones.
     """
+
+    json_module = json
 
     #: The internal URL rule that matched the request.  This can be
     #: useful to inspect which methods are allowed for the URL from
@@ -99,8 +80,14 @@ class Request(RequestBase, JSONMixin):
 
             attach_enctype_error_multidict(self)
 
+    def on_json_loading_failed(self, e):
+        if current_app and current_app.debug:
+            raise BadRequest(f"Failed to decode JSON object: {e}")
 
-class Response(ResponseBase, JSONMixin):
+        raise BadRequest()
+
+
+class Response(ResponseBase):
     """The response object that is used by default in Flask.  Works like the
     response object from Werkzeug but is set to have an HTML mimetype by
     default.  Quite often you don't have to create this object yourself because
@@ -120,18 +107,17 @@ class Response(ResponseBase, JSONMixin):
 
     default_mimetype = "text/html"
 
-    def _get_data_for_json(self, cache):
-        return self.get_data()
+    json_module = json
 
     @property
     def max_cookie_size(self):
         """Read-only view of the :data:`MAX_COOKIE_SIZE` config key.
 
-        See :attr:`~werkzeug.wrappers.BaseResponse.max_cookie_size` in
+        See :attr:`~werkzeug.wrappers.Response.max_cookie_size` in
         Werkzeug's docs.
         """
         if current_app:
             return current_app.config["MAX_COOKIE_SIZE"]
 
         # return Werkzeug's default when not in an app context
-        return super(Response, self).max_cookie_size
+        return super().max_cookie_size

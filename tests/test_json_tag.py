@@ -1,12 +1,5 @@
-# -*- coding: utf-8 -*-
-"""
-tests.test_json_tag
-~~~~~~~~~~~~~~~~~~~
-
-:copyright: 2010 Pallets
-:license: BSD-3-Clause
-"""
 from datetime import datetime
+from datetime import timezone
 from uuid import uuid4
 
 import pytest
@@ -28,7 +21,7 @@ from flask.json.tag import TaggedJSONSerializer
         b"\xff",
         Markup("<html>"),
         uuid4(),
-        datetime.utcnow().replace(microsecond=0),
+        datetime.now(tz=timezone.utc).replace(microsecond=0),
     ),
 )
 def test_dump_load_unchanged(data):
@@ -48,7 +41,7 @@ def test_duplicate_tag():
 
 
 def test_custom_tag():
-    class Foo(object):  # noqa: B903, for Python2 compatibility
+    class Foo:  # noqa: B903, for Python2 compatibility
         def __init__(self, data):
             self.data = data
 

@@ -1,10 +1,8 @@
-.. _app-factories:
-
 Application Factories
 =====================
 
 If you are already using packages and blueprints for your application
-(:ref:`blueprints`) there are a couple of really nice ways to further improve
+(:doc:`/blueprints`) there are a couple of really nice ways to further improve
 the experience.  A common pattern is creating the application object when
 the blueprint is imported.  But if you move the creation of this object
 into a function, you can then create multiple instances of this app later.
@@ -89,16 +87,56 @@ For more information about the design of extensions refer to :doc:`/extensiondev
 Using Applications
 ------------------
 
-To run such an application, you can use the :command:`flask` command::
+To run such an application, you can use the :command:`flask` command:
 
-    $ export FLASK_APP=myapp
-    $ flask run
+.. tabs::
+
+   .. group-tab:: Bash
+
+      .. code-block:: text
+
+         $ export FLASK_APP=myapp
+         $ flask run
+
+   .. group-tab:: CMD
+
+      .. code-block:: text
+
+         > set FLASK_APP=myapp
+         > flask run
+
+   .. group-tab:: Powershell
+
+      .. code-block:: text
+
+         > $env:FLASK_APP = "myapp"
+         > flask run
 
 Flask will automatically detect the factory (``create_app`` or ``make_app``)
-in ``myapp``. You can also pass arguments to the factory like this::
+in ``myapp``. You can also pass arguments to the factory like this:
 
-    $ export FLASK_APP="myapp:create_app('dev')"
-    $ flask run
+.. tabs::
+
+   .. group-tab:: Bash
+
+      .. code-block:: text
+
+         $ export FLASK_APP="myapp:create_app('dev')"
+         $ flask run
+
+   .. group-tab:: CMD
+
+      .. code-block:: text
+
+         > set FLASK_APP="myapp:create_app('dev')"
+         > flask run
+
+   .. group-tab:: Powershell
+
+      .. code-block:: text
+
+         > $env:FLASK_APP = "myapp:create_app('dev')"
+         > flask run
 
 Then the ``create_app`` factory in ``myapp`` is called with the string
 ``'dev'`` as the argument. See :doc:`/cli` for more detail.

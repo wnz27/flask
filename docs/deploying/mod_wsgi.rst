@@ -1,5 +1,3 @@
-.. _mod_wsgi-deployment:
-
 mod_wsgi (Apache)
 =================
 
@@ -27,7 +25,7 @@ follows:
 
 .. sourcecode:: text
 
-    $ apt-get install libapache2-mod-wsgi
+    $ apt-get install libapache2-mod-wsgi-py3
 
 If you are using a yum based distribution (Fedora, OpenSUSE, etc..) you
 can install it as follows:
@@ -41,7 +39,7 @@ using pkg_add:
 
 .. sourcecode:: text
 
-    $ pkg install ap22-mod_wsgi2
+    $ pkg install ap24-py37-mod_wsgi
 
 If you are using pkgsrc you can install `mod_wsgi` by compiling the
 `www/ap2-wsgi` package.
@@ -209,11 +207,6 @@ is used where.  If you want to use a virtual environment with mod_wsgi
 you have to modify your ``.wsgi`` file slightly.
 
 Add the following lines to the top of your ``.wsgi`` file::
-
-    activate_this = '/path/to/env/bin/activate_this.py'
-    execfile(activate_this, dict(__file__=activate_this))
-
-For Python 3 add the following lines to the top of your ``.wsgi`` file::
 
     activate_this = '/path/to/env/bin/activate_this.py'
     with open(activate_this) as file_:

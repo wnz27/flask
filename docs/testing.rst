@@ -1,5 +1,3 @@
-.. _testing:
-
 Testing Flask Applications
 ==========================
 
@@ -26,8 +24,8 @@ The Application
 ---------------
 
 First, we need an application to test; we will use the application from
-the :ref:`tutorial`.  If you don't have that application yet, get the
-source code from :gh:`the examples <examples/tutorial>`.
+the :doc:`tutorial/index`. If you don't have that application yet, get
+the source code from :gh:`the examples <examples/tutorial>`.
 
 So that we can import the module ``flaskr`` correctly, we need to run
 ``pip install -e .`` in the folder ``tutorial``.
@@ -121,7 +119,7 @@ Notice that our test functions begin with the word `test`; this allows
 By using ``client.get`` we can send an HTTP ``GET`` request to the
 application with the given path.  The return value will be a
 :class:`~flask.Flask.response_class` object. We can now use the
-:attr:`~werkzeug.wrappers.BaseResponse.data` attribute to inspect
+:attr:`~werkzeug.wrappers.Response.data` attribute to inspect
 the return value (as string) from the application.
 In this case, we ensure that ``'No entries here so far'``
 is part of the output.
@@ -165,16 +163,19 @@ invalid credentials.  Add this new test function::
     def test_login_logout(client):
         """Make sure login and logout works."""
 
-        rv = login(client, flaskr.app.config['USERNAME'], flaskr.app.config['PASSWORD'])
+        username = flaskr.app.config["USERNAME"]
+        password = flaskr.app.config["PASSWORD"]
+
+        rv = login(client, username, password)
         assert b'You were logged in' in rv.data
 
         rv = logout(client)
         assert b'You were logged out' in rv.data
 
-        rv = login(client, flaskr.app.config['USERNAME'] + 'x', flaskr.app.config['PASSWORD'])
+        rv = login(client, f"{username}x", password)
         assert b'Invalid username' in rv.data
 
-        rv = login(client, flaskr.app.config['USERNAME'], flaskr.app.config['PASSWORD'] + 'x')
+        rv = login(client, username, f'{password}x')
         assert b'Invalid password' in rv.data
 
 Test Adding Messages
@@ -236,7 +237,7 @@ way.
 
 If you want to test your application with different configurations and
 there does not seem to be a good way to do that, consider switching to
-application factories (see :ref:`app-factories`).
+application factories (see :doc:`patterns/appfactories`).
 
 Note however that if you are using a test request context, the
 :meth:`~flask.Flask.before_request` and :meth:`~flask.Flask.after_request`
@@ -315,7 +316,7 @@ And then to use it::
         with app.test_client() as c:
             resp = c.get('/users/me')
             data = json.loads(resp.data)
-            self.assert_equal(data['username'], my_user.username)
+            assert data['username'] == my_user.username
 
 
 Keeping the Context Around
@@ -423,7 +424,7 @@ command line. ::
 
     @app.cli.command('hello')
     @click.option('--name', default='World')
-    def hello_command(name)
+    def hello_command(name):
         click.echo(f'Hello, {name}!')
 
     def test_hello():
@@ -450,7 +451,7 @@ This is useful for testing complex validation rules and custom types. ::
 
     @app.cli.command('hello')
     @click.option('--name', default='World', callback=upper)
-    def hello_command(name)
+    def hello_command(name):
         click.echo(f'Hello, {name}!')
 
     def test_hello_params():

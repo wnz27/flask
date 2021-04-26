@@ -1,5 +1,3 @@
-.. _config:
-
 Configuration Handling
 ======================
 
@@ -67,12 +65,30 @@ in debug mode. To control this separately from the environment, use the
     from debug mode. The development environment enables debug mode.
 
 To switch Flask to the development environment and enable debug mode,
-set :envvar:`FLASK_ENV`::
+set :envvar:`FLASK_ENV`:
 
-    $ export FLASK_ENV=development
-    $ flask run
+.. tabs::
 
-(On Windows, use ``set`` instead of ``export``.)
+   .. group-tab:: Bash
+
+      .. code-block:: text
+
+         $ export FLASK_ENV=development
+         $ flask run
+
+   .. group-tab:: CMD
+
+      .. code-block:: text
+
+         > set FLASK_ENV=development
+         > flask run
+
+   .. group-tab:: Powershell
+
+      .. code-block:: text
+
+         > $env:FLASK_ENV = "development"
+         > flask run
 
 Using the environment variables as described above is recommended. While
 it is possible to set :data:`ENV` and :data:`DEBUG` in your config or
@@ -161,8 +177,8 @@ The following configuration values are used internally by Flask:
 
     A secret key that will be used for securely signing the session cookie
     and can be used for any other security related needs by extensions or your
-    application. It should be a long random string of bytes, although unicode
-    is accepted too. For example, copy the output of this to your config::
+    application. It should be a long random ``bytes`` or ``str``. For
+    example, copy the output of this to your config::
 
         $ python -c 'import os; print(os.urandom(16))'
         b'_5#y2L"F4Q8z\n\xec]/'
@@ -249,11 +265,16 @@ The following configuration values are used internally by Flask:
 .. py:data:: SEND_FILE_MAX_AGE_DEFAULT
 
     When serving files, set the cache control max age to this number of
-    seconds.  Can either be a :class:`datetime.timedelta` or an ``int``.
+    seconds. Can be a :class:`datetime.timedelta` or an ``int``.
     Override this value on a per-file basis using
-    :meth:`~flask.Flask.get_send_file_max_age` on the application or blueprint.
+    :meth:`~flask.Flask.get_send_file_max_age` on the application or
+    blueprint.
 
-    Default: ``timedelta(hours=12)`` (``43200`` seconds)
+    If ``None``, ``send_file`` tells the browser to use conditional
+    requests will be used instead of a timed cache, which is usually
+    preferable.
+
+    Default: ``None``
 
 .. py:data:: SERVER_NAME
 
@@ -278,7 +299,7 @@ The following configuration values are used internally by Flask:
     Inform the application what path it is mounted under by the application /
     web server.  This is used for generating URLs outside the context of a
     request (inside a request, the dispatcher is responsible for setting
-    ``SCRIPT_NAME`` instead; see :ref:`Application Dispatching <app-dispatch>`
+    ``SCRIPT_NAME`` instead; see :doc:`/patterns/appdispatch`
     for examples of dispatch configuration).
 
     Will be used for the session cookie path if ``SESSION_COOKIE_PATH`` is not
@@ -302,10 +323,10 @@ The following configuration values are used internally by Flask:
 
 .. py:data:: JSON_AS_ASCII
 
-    Serialize objects to ASCII-encoded JSON. If this is disabled, the JSON
-    will be returned as a Unicode string, or encoded as ``UTF-8`` by
-    ``jsonify``. This has security implications when rendering the JSON into
-    JavaScript in templates, and should typically remain enabled.
+    Serialize objects to ASCII-encoded JSON. If this is disabled, the
+    JSON returned from ``jsonify`` will contain Unicode characters. This
+    has security implications when rendering the JSON into JavaScript in
+    templates, and should typically remain enabled.
 
     Default: ``True``
 
@@ -399,7 +420,7 @@ Configuring from Python Files
 Configuration becomes more useful if you can store it in a separate file,
 ideally located outside the actual application package. This makes
 packaging and distributing your application possible via various package
-handling tools (:ref:`distribute-deployment`) and finally modifying the
+handling tools (:doc:`/patterns/distribute`) and finally modifying the
 configuration file afterwards.
 
 So a common pattern is this::
@@ -411,18 +432,34 @@ So a common pattern is this::
 This first loads the configuration from the
 `yourapplication.default_settings` module and then overrides the values
 with the contents of the file the :envvar:`YOURAPPLICATION_SETTINGS`
-environment variable points to.  This environment variable can be set on
-Linux or OS X with the export command in the shell before starting the
-server::
+environment variable points to.  This environment variable can be set
+in the shell before starting the server:
 
-    $ export YOURAPPLICATION_SETTINGS=/path/to/settings.cfg
-    $ python run-app.py
-     * Running on http://127.0.0.1:5000/
-     * Restarting with reloader...
+.. tabs::
 
-On Windows systems use the `set` builtin instead::
+   .. group-tab:: Bash
 
-    > set YOURAPPLICATION_SETTINGS=\path\to\settings.cfg
+      .. code-block:: text
+
+         $ export YOURAPPLICATION_SETTINGS=/path/to/settings.cfg
+         $ flask run
+          * Running on http://127.0.0.1:5000/
+
+   .. group-tab:: CMD
+
+      .. code-block:: text
+
+         > set YOURAPPLICATION_SETTINGS=\path\to\settings.cfg
+         > flask run
+          * Running on http://127.0.0.1:5000/
+
+   .. group-tab:: Powershell
+
+      .. code-block:: text
+
+         > $env:YOURAPPLICATION_SETTINGS = "\path\to\settings.cfg"
+         > flask run
+          * Running on http://127.0.0.1:5000/
 
 The configuration files themselves are actual Python files.  Only values
 in uppercase are actually stored in the config object later on.  So make
@@ -431,7 +468,6 @@ sure to use uppercase letters for your config keys.
 Here is an example of a configuration file::
 
     # Example configuration
-    DEBUG = False
     SECRET_KEY = b'_5#y2L"F4Q8z\n\xec]/'
 
 Make sure to load the configuration very early on, so that extensions have
@@ -468,17 +504,36 @@ In addition to pointing to configuration files using environment variables, you
 may find it useful (or necessary) to control your configuration values directly
 from the environment.
 
-Environment variables can be set on Linux or OS X with the export command in
-the shell before starting the server::
+Environment variables can be set in the shell before starting the server:
 
-    $ export SECRET_KEY='5f352379324c22463451387a0aec5d2f'
-    $ export MAIL_ENABLED=false
-    $ python run-app.py
-     * Running on http://127.0.0.1:5000/
+.. tabs::
 
-On Windows systems use the ``set`` builtin instead::
+   .. group-tab:: Bash
 
-    > set SECRET_KEY='5f352379324c22463451387a0aec5d2f'
+      .. code-block:: text
+
+         $ export SECRET_KEY="5f352379324c22463451387a0aec5d2f"
+         $ export MAIL_ENABLED=false
+         $ flask run
+          * Running on http://127.0.0.1:5000/
+
+   .. group-tab:: CMD
+
+      .. code-block:: text
+
+         > set SECRET_KEY="5f352379324c22463451387a0aec5d2f"
+         > set MAIL_ENABLED=false
+         > flask run
+          * Running on http://127.0.0.1:5000/
+
+   .. group-tab:: Powershell
+
+      .. code-block:: text
+
+         > $env:SECRET_KEY = "5f352379324c22463451387a0aec5d2f"
+         > $env:MAIL_ENABLED = "false"
+         > flask run
+          * Running on http://127.0.0.1:5000/
 
 While this approach is straightforward to use, it is important to remember that
 environment variables are strings -- they are not automatically deserialized
@@ -556,17 +611,16 @@ An interesting pattern is also to use classes and inheritance for
 configuration::
 
     class Config(object):
-        DEBUG = False
         TESTING = False
-        DATABASE_URI = 'sqlite:///:memory:'
 
     class ProductionConfig(Config):
         DATABASE_URI = 'mysql://user@localhost/foo'
 
     class DevelopmentConfig(Config):
-        DEBUG = True
+        DATABASE_URI = "sqlite:////tmp/foo.db"
 
     class TestingConfig(Config):
+        DATABASE_URI = 'sqlite:///:memory:'
         TESTING = True
 
 To enable such a config you just have to call into
@@ -591,13 +645,12 @@ your configuration classes::
 
     class Config(object):
         """Base config, uses staging database server."""
-        DEBUG = False
         TESTING = False
         DB_SERVER = '192.168.1.56'
 
         @property
-        def DATABASE_URI(self):         # Note: all caps
-            return 'mysql://user@{}/foo'.format(self.DB_SERVER)
+        def DATABASE_URI(self):  # Note: all caps
+            return f"mysql://user@{self.DB_SERVER}/foo"
 
     class ProductionConfig(Config):
         """Uses production database server."""
@@ -605,11 +658,9 @@ your configuration classes::
 
     class DevelopmentConfig(Config):
         DB_SERVER = 'localhost'
-        DEBUG = True
 
     class TestingConfig(Config):
         DB_SERVER = 'localhost'
-        DEBUG = True
         DATABASE_URI = 'sqlite:///:memory:'
 
 There are many different ways and it's up to you how you want to manage
@@ -628,7 +679,7 @@ your configuration files.  However here a list of good recommendations:
 -   Use a tool like `fabric`_ in production to push code and
     configurations separately to the production server(s).  For some
     details about how to do that, head over to the
-    :ref:`fabric-deployment` pattern.
+    :doc:`/patterns/fabric` pattern.
 
 .. _fabric: https://www.fabfile.org/
 
@@ -678,7 +729,7 @@ locations are used:
 
 -   Installed module or package::
 
-        $PREFIX/lib/python2.X/site-packages/myapp
+        $PREFIX/lib/pythonX.Y/site-packages/myapp
         $PREFIX/var/myapp-instance
 
     ``$PREFIX`` is the prefix of your Python installation.  This can be
